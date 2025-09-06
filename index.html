@@ -1,33 +1,3 @@
-# FPL Live — Bonus & DefCon (Team 159748)
-# ==================================================
-# دليل سريع
-# 1) هذا مشروع جاهز للنشر على Vercel (مجاني).
-# 2) يعرِض أحداث الجولة مباشرة مع حساب البونص (BPS→Bonus) ويُبرز لاعبي فريقك #159748.
-# 3) يحاول جلب Picks للجولة الحالية؛ ولو غير متاحة بعد، يرجع لآخر جولة مقفلة.
-# 4) لا تحتاج مفاتيح API — كله قراءات عامة.
-# 5) للنشر: ارفع هذه الملفات إلى مستودع GitHub ثم اربطه بـ Vercel.
-
-
-/README.md
---------------------------------------------------
-# FPL Live — Bonus & DefCon (Team 159748)
-
-واجهة خفيفة تعرض Fixtures الجولة "لايف"، أعلى BPS مع تحويله إلى Bonus (3/2/1) وتوضيح DefCon إن توفّر من الـ explain، مع إبراز لاعبي فريق (Entry) رقم **159748**.
-
-## النشر على Vercel (مجاني)
-1. أنشئ مستودع GitHub جديد وارفع كل ملفات هذا المشروع.
-2. ادخل إلى https://vercel.com → New Project → Import من GitHub.
-3. سيكتشف Vercel مجلد `api/` كدوال Serverless وملف `index.html` كواجهة.
-4. لا حاجة لإعدادات خاصة؛ اضغط Deploy. بعد دقائق سيظهر لك رابط عام دائم.
-
-> ملاحظة: بإمكانك تغيير `TEAM_ID` من داخل `index.html` لاحقًا إن رغبت.
-
-## تطوير محلي (اختياري)
-- يمكنك تشغيل Static Server محليًا (مثل `npx serve`) — لكن وظائف `/api/*` لن تعمل محليًا بدون منصة تدعم Serverless. الأفضل تجربة مباشرة على Vercel.
-
-
-/index.html
---------------------------------------------------
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
@@ -59,8 +29,7 @@
     th,td{padding:6px 8px;border-bottom:1px dashed #23293b;font-size:14px;vertical-align:middle}
     .bonus{font-weight:800}
     .muted{color:var(--muted)}
-    .me{display:inline-flex;align-items:center;gap:6px}
-    .tag{font-size:11px;border:1px solid #2a3247;border-radius:999px;padding:1px 6px}
+    .tag{font-size:11px;border:1px solid #2a3247;border-radius:999px;padding:1px 6px;margin-left:4px}
     .cap{border-color:#ffd54f;color:#ffd54f}
     .vc{border-color:#81d4fa;color:#81d4fa}
     footer{color:var(--muted);font-size:12px;margin:20px 0}
@@ -86,7 +55,11 @@
     <div id="legend" class="muted" style="margin-bottom:10px"></div>
     <div id="fixtures" class="grid"></div>
     <footer>
-      <div>يعرض أعلى BPS ويحوّله تلقائيًا إلى Bonus (3/2/1). DefCon يظهر مع تفاصيل المساهمات الدفاعية عند المرور على القيمة أو الضغط. لاعبوك مميّزون بوسم “فريقي”، والكابتن/الڤايس بوسوم خاصة.</div>
+      <div>
+        يعرض أعلى BPS ويحوّله تلقائيًا إلى Bonus (3/2/1).
+        DefCon يظهر مع تفاصيل المساهمات الدفاعية عند المرور على القيمة أو الضغط.
+        لاعبوك مميّزون بوسم “فريقي”، والكابتن/الڤايس بوسوم خاصة.
+      </div>
     </footer>
   </main>
   <div id="toasts"></div>
@@ -105,33 +78,32 @@
     $teamId.value = TEAM_ID;
 
     let BOOT;
-    let lastDefcon = new Map(); // element -> defcon value to detect new awards
+    let lastDefcon = new Map(); // element -> defcon value
 
     const sleep = ms => new Promise(r => setTimeout(r, ms));
-
     function toast(msg){
-      const d = document.createElement('div');
+      const d=document.createElement('div');
       d.className='toast';
-      d.textContent = msg;
+      d.textContent=msg;
       $toasts.appendChild(d);
-      setTimeout(()=>{ d.remove(); }, 4000);
+      setTimeout(()=>d.remove(),4000);
     }
 
     async function j(url){
-      const r = await fetch(url);
+      const r=await fetch(url);
       if(!r.ok) throw new Error('HTTP '+r.status);
       return r.json();
     }
 
-    function idMap(arr){ const m=new Map(); for(const x of arr) m.set(x.id,x); return m; }
-    function teamShort(BOOT, id){ return BOOT.teams.find(t=>t.id===id)?.short_name||'?'; }
+    function idMap(arr){const m=new Map();for(const x of arr)m.set(x.id,x);return m;}
+    function teamShort(BOOT,id){return BOOT.teams.find(t=>t.id===id)?.short_name||'?';}
 
     function computeBonus(bpsList){
       const sorted=[...bpsList].sort((a,b)=>b.bps-a.bps).slice(0,10);
-      if(!sorted.length) return {};
-      const byBps={}; for(const x of sorted) (byBps[x.bps] ||= []).push(x.element);
+      if(!sorted.length)return{};
+      const byBps={};for(const x of sorted)(byBps[x.bps] ||= []).push(x.element);
       const unique=Object.keys(byBps).map(Number).sort((a,b)=>b-a);
-      const awards={}; let slots=[3,2,1];
+      const awards={};let slots=[3,2,1];
       for(let i=0;i<unique.length && slots.length;i++){
         const pts=slots.shift();
         for(const el of byBps[unique[i]]) awards[el]=(awards[el]||0)+pts;
@@ -140,34 +112,29 @@
     }
 
     function readDefCon(explainEntry){
-      if(!Array.isArray(explainEntry)) return { value:0, detail:[] };
-      const interesting = ['defensive_contributions','recoveries','clearances_blocks_interceptions','tackles','blocks','interceptions','clearances','saves'];
-      const detail = [];
-      let defVal = 0;
+      if(!Array.isArray(explainEntry))return{value:0,detail:[]};
+      const interesting=['defensive_contributions','recoveries','clearances_blocks_interceptions','tackles','blocks','interceptions','clearances','saves'];
+      const detail=[];let defVal=0;
       for(const s of explainEntry){
-        const id = (s.identifier||'').toLowerCase();
-        if(id === 'defensive_contributions' || id === 'defcon') { defVal = Number(s.points||s.value||0); }
-        if(interesting.includes(id)) {
-          const val = (s.value!=null ? s.value : s.points);
-          detail.push({ id, val });
-        }
+        const id=(s.identifier||'').toLowerCase();
+        if(id==='defensive_contributions'||id==='defcon'){defVal=Number(s.points||s.value||0);}
+        if(interesting.includes(id)){const val=(s.value!=null?s.value:s.points);detail.push({id,val});}
       }
-      return { value:defVal, detail };
+      return{value:defVal,detail};
     }
 
     function fmtDetail(detail){
-      if(!detail.length) return 'لا تفاصيل متاحة';
-      return detail.map(d=>`${d.id}: ${d.val}`).join('
-');
+      if(!detail.length)return'لا تفاصيل متاحة';
+      return detail.map(d=>`${d.id}: ${d.val}`).join('\\n');
     }
 
     async function getMyPicks(gw){
-      try { return await j(\`/api/entry/\${TEAM_ID}/event/\${gw}/picks\`); }
+      try{return await j(`/api/entry/${TEAM_ID}/event/${gw}/picks`);}
       catch(e){
-        try {
-          const hist = await j(\`/api/entry/\${TEAM_ID}/history\`);
-          const lastFinished = (hist?.current||[]).reverse().find(x=>x.finished === true) || (hist?.current||[])[0];
-          if(lastFinished) return await j(\`/api/entry/\${TEAM_ID}/event/\${lastFinished.event}/picks\`);
+        try{
+          const hist=await j(`/api/entry/${TEAM_ID}/history`);
+          const lastFinished=(hist?.current||[]).reverse().find(x=>x.finished===true)||(hist?.current||[])[0];
+          if(lastFinished)return await j(`/api/entry/${TEAM_ID}/event/${lastFinished.event}/picks`);
         }catch(_){}
       }
       return null;
@@ -175,246 +142,124 @@
 
     async function render(){
       $status.textContent='جارِ التحديث…';
-      try {
-        if(!BOOT){ BOOT = await j('/api/bootstrap'); }
-        const elementsById = idMap(BOOT.elements);
-        const currentGW = BOOT.events.find(e=>e.is_current)?.id || BOOT.events.find(e=>!e.finished)?.id || 1;
-        if(!$gw.dataset.init){ $gw.value = currentGW; $gw.dataset.init = '1'; }
-        const gw = Number($gw.value);
+      try{
+        if(!BOOT){BOOT=await j('/api/bootstrap');}
+        const elementsById=idMap(BOOT.elements);
+        const currentGW=BOOT.events.find(e=>e.is_current)?.id||BOOT.events.find(e=>!e.finished)?.id||1;
+        if(!$gw.dataset.init){$gw.value=currentGW;$gw.dataset.init='1';}
+        const gw=Number($gw.value);
 
-        const [fixtures, live, picks] = await Promise.all([
-          j(\`/api/fixtures?event=\${gw}\`),
-          j(\`/api/live/\${gw}\`),
+        const [fixtures,live,picks]=await Promise.all([
+          j(`/api/fixtures?event=${gw}`),
+          j(`/api/live/${gw}`),
           getMyPicks(gw)
         ]);
 
-        const mySet = new Set();
-        let capEl=null, vcEl=null;
+        const mySet=new Set();let capEl=null,vcEl=null;
         if(picks?.picks){
           for(const p of picks.picks){
             mySet.add(p.element);
-            if(p.is_captain || p.multiplier===2) capEl = p.element;
-            if(p.is_vice_captain) vcEl = p.element;
+            if(p.is_captain||p.multiplier===2)capEl=p.element;
+            if(p.is_vice_captain)vcEl=p.element;
           }
         }
-        $legend.innerHTML = `الفريق النشط: <b>${TEAM_ID}</b> — الجولة المعروضة: <b>${gw}</b> — وسم <span class="tag">فريقي</span> + <span class="tag cap">C</span> و <span class="tag vc">VC</span>`;
+        $legend.innerHTML=`الفريق النشط: <b>${TEAM_ID}</b> — الجولة: <b>${gw}</b> — <span class="tag">فريقي</span> <span class="tag cap">C</span> <span class="tag vc">VC</span>`;
 
-        const explainByElement = {};
+        const explainByElement={};
         if(Array.isArray(live.explain)){
           for(const fx of live.explain){
-            for(const player of fx.explain || []){
-              explainByElement[player.element] = player.stats || [];
+            for(const player of fx.explain||[]){
+              explainByElement[player.element]=player.stats||[];
             }
           }
         }
 
-        const bpsByFixture = {};
+        const bpsByFixture={};
         if(Array.isArray(live.elements)){
           for(const el of live.elements){
-            const elId = el.id;
-            const bps = el.stats?.bps ?? 0;
-            const fixtureId = el.explain?.[0]?.fixture || null;
-            if(!fixtureId) continue;
-            (bpsByFixture[fixtureId] ||= []).push({element: elId, bps});
+            const elId=el.id;
+            const bps=el.stats?.bps??0;
+            const fixtureId=el.explain?.[0]?.fixture||null;
+            if(!fixtureId)continue;
+            (bpsByFixture[fixtureId] ||= []).push({element:elId,bps});
           }
         }
 
         $fixtures.innerHTML='';
-        const fr = document.createDocumentFragment();
+        const fr=document.createDocumentFragment();
 
         for(const f of fixtures){
-          const fxId = f.id;
-          const home = teamShort(BOOT, f.team_h);
-          const away = teamShort(BOOT, f.team_a);
-          const ko = f.kickoff_time ? new Date(f.kickoff_time).toLocaleString() : '—';
+          const fxId=f.id;
+          const home=teamShort(BOOT,f.team_h);
+          const away=teamShort(BOOT,f.team_a);
+          const ko=f.kickoff_time?new Date(f.kickoff_time).toLocaleString():'—';
 
-          const bpsList = bpsByFixture[fxId] || [];
-          const bonus = computeBonus(bpsList);
-          const top = bpsList
-            .sort((a,b)=>b.bps-a.bps)
-            .slice(0,8)
-            .map(row=>{
-              const p = elementsById.get(row.element);
-              const name = p ? p.web_name : `#${row.element}`;
-              const defObj = readDefCon(explainByElement[row.element]);
-              const mine = mySet.has(row.element);
-              const isC = row.element===capEl;
-              const isVC = row.element===vcEl;
-              return { id: row.element, name, bps: row.bps, bonus: bonus[row.element]||0, def: defObj, mine, isC, isVC };
-            });
+          const bpsList=bpsByFixture[fxId]||[];
+          const bonus=computeBonus(bpsList);
+          const top=bpsList.sort((a,b)=>b.bps-a.bps).slice(0,8).map(row=>{
+            const p=elementsById.get(row.element);
+            const name=p?p.web_name:`#${row.element}`;
+            const defObj=readDefCon(explainByElement[row.element]);
+            const mine=mySet.has(row.element);
+            const isC=row.element===capEl;
+            const isVC=row.element===vcEl;
+            return{id:row.element,name,bps:row.bps,bonus:bonus[row.element]||0,def:defObj,mine,isC,isVC};
+          });
 
-          // تنبيهات DefCon عند الزيادة
           for(const r of top){
-            const prev = lastDefcon.get(r.id) || 0;
-            if(r.def.value > prev){
+            const prev=lastDefcon.get(r.id)||0;
+            if(r.def.value>prev){
               toast(`DefCon ↑ للاعب ${r.name}: ${prev} → ${r.def.value}`);
-              lastDefcon.set(r.id, r.def.value);
+              lastDefcon.set(r.id,r.def.value);
             }
           }
 
-          const rowsHtml = top.map(r=>{
-            const mineTag = r.mine ? '<span class="tag">فريقي</span>' : '';
-            const cTag = r.isC ? '<span class="tag cap">C</span>' : '';
-            const vcTag = r.isVC ? '<span class="tag vc">VC</span>' : '';
-            const defTitle = fmtDetail(r.def.detail).replace(/"/g,'\"');
-            const defCell = r.def.value ? `<span title="${defTitle}">${r.def.value}</span>` : '<span class="muted" title="لا تفاصيل">—</span>';
-            return `
-              <tr>
-                <td>${r.name} ${mineTag} ${cTag} ${vcTag}</td>
-                <td>${r.bps}</td>
-                <td class="bonus">${r.bonus}</td>
-                <td>${defCell}</td>
-              </tr>`;
+          const rowsHtml=top.map(r=>{
+            const tags=[];
+            if(r.mine)tags.push('<span class="tag">فريقي</span>');
+            if(r.isC)tags.push('<span class="tag cap">C</span>');
+            if(r.isVC)tags.push('<span class="tag vc">VC</span>');
+            const defTitle=fmtDetail(r.def.detail).replace(/"/g,'\\"');
+            const defCell=r.def.value?`<span title="${defTitle}">${r.def.value}</span>`:'<span class="muted" title="لا تفاصيل">—</span>';
+            return`<tr><td>${r.name} ${tags.join(' ')}</td><td>${r.bps}</td><td class="bonus">${r.bonus}</td><td>${defCell}</td></tr>`;
           }).join('');
 
-          const card = document.createElement('div');
+          const card=document.createElement('div');
           card.className='card';
-          card.innerHTML = `
-            <div class=\"fixture-head\">
+          card.innerHTML=`
+            <div class="fixture-head">
               <div>
-                <div class=\"teams\">${home} vs ${away}</div>
-                <div class=\"kickoff\">${ko}</div>
+                <div class="teams">${home} vs ${away}</div>
+                <div class="kickoff">${ko}</div>
               </div>
-              <div class=\"pill ${f.started ? 'live' : ''}\">${f.started ? 'LIVE' : 'Scheduled'}</div>
+              <div class="pill ${f.started?'live':''}">${f.started?'LIVE':'Scheduled'}</div>
             </div>
             <table>
-              <thead>
-                <tr><th>اللاعب</th><th>BPS</th><th>Bonus</th><th>DefCon</th></tr>
-              </thead>
+              <thead><tr><th>اللاعب</th><th>BPS</th><th>Bonus</th><th>DefCon</th></tr></thead>
               <tbody>${rowsHtml}</tbody>
             </table>`;
           fr.appendChild(card);
         }
         $fixtures.appendChild(fr);
-        $status.textContent = 'آخر تحديث: '+ new Date().toLocaleTimeString();
-      } catch(err){
+        $status.textContent='آخر تحديث: '+new Date().toLocaleTimeString();
+      }catch(err){
         console.error(err);
         $status.textContent='تعذر الجلب — حاول مجددًا';
       }
     }
 
-    document.getElementById('refresh').addEventListener('click', render);
-    $applyTeam.addEventListener('click', ()=>{
-      const v = Number($teamId.value);
-      if(!v) return;
-      TEAM_ID = v;
-      localStorage.setItem('TEAM_ID', String(v));
-      // إعادة تهيئة عداد DefCon لكشف تنبيهات جديدة بعد تغيير الفريق
-      lastDefcon = new Map();
+    document.getElementById('refresh').addEventListener('click',render);
+    $applyTeam.addEventListener('click',()=>{
+      const v=Number($teamId.value);
+      if(!v)return;
+      TEAM_ID=v;
+      localStorage.setItem('TEAM_ID',String(v));
+      lastDefcon=new Map();
       render();
     });
 
     render();
-    (async function loop(){ while(true){ await sleep(30000); await render(); } })();
+    (async function loop(){while(true){await sleep(30000);await render();}})();
   </script>
 </body>
 </html>
-
-
-
-/api/bootstrap.js
---------------------------------------------------
-export default async function handler(req, res) {
-  try {
-    const r = await fetch('https://fantasy.premierleague.com/api/bootstrap-static/', { headers: { 'User-Agent': 'Mozilla/5.0' }});
-    const data = await r.json();
-    res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=30');
-    res.status(200).json(data);
-  } catch (e) {
-    res.status(502).json({ error: 'Upstream error', detail: String(e) });
-  }
-}
-
-
-/api/fixtures.js
---------------------------------------------------
-export default async function handler(req, res) {
-  try {
-    const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?') + 1) : '';
-    const url = `https://fantasy.premierleague.com/api/fixtures/${qs ? ('?' + qs) : ''}`;
-    const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' }});
-    const data = await r.json();
-    res.setHeader('Cache-Control', 's-maxage=15, stale-while-revalidate=30');
-    res.status(200).json(data);
-  } catch (e) {
-    res.status(502).json({ error: 'Upstream error', detail: String(e) });
-  }
-}
-
-
-/api/live/[gw].js
---------------------------------------------------
-export default async function handler(req, res) {
-  const { gw } = req.query;
-  try {
-    const r = await fetch(`https://fantasy.premierleague.com/api/event/${gw}/live/`, { headers: { 'User-Agent': 'Mozilla/5.0' }});
-    const data = await r.json();
-    res.setHeader('Cache-Control', 's-maxage=5, stale-while-revalidate=15');
-    res.status(200).json(data);
-  } catch (e) {
-    res.status(502).json({ error: 'Upstream error', detail: String(e) });
-  }
-}
-
-
-/api/entry/[id].js
---------------------------------------------------
-export default async function handler(req, res) {
-  const { id } = req.query;
-  try {
-    const r = await fetch(`https://fantasy.premierleague.com/api/entry/${id}/`, { headers: { 'User-Agent': 'Mozilla/5.0' }});
-    const data = await r.json();
-    res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300');
-    res.status(200).json(data);
-  } catch (e) {
-    res.status(502).json({ error: 'Upstream error', detail: String(e) });
-  }
-}
-
-
-/api/entry/[id]/history.js
---------------------------------------------------
-export default async function handler(req, res) {
-  const { id } = req.query;
-  try {
-    const r = await fetch(`https://fantasy.premierleague.com/api/entry/${id}/history/`, { headers: { 'User-Agent': 'Mozilla/5.0' }});
-    const data = await r.json();
-    res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300');
-    res.status(200).json(data);
-  } catch (e) {
-    res.status(502).json({ error: 'Upstream error', detail: String(e) });
-  }
-}
-
-
-/api/entry/[id]/event/[gw]/picks.js
---------------------------------------------------
-export default async function handler(req, res) {
-  const { id, gw } = req.query;
-  try {
-    const r = await fetch(`https://fantasy.premierleague.com/api/entry/${id}/event/${gw}/picks/`, { headers: { 'User-Agent': 'Mozilla/5.0' }});
-    if(!r.ok){
-      return res.status(r.status).json({ error: 'upstream '+r.status });
-    }
-    const data = await r.json();
-    res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
-    res.status(200).json(data);
-  } catch (e) {
-    res.status(502).json({ error: 'Upstream error', detail: String(e) });
-  }
-}
-
-
-/vercel.json
---------------------------------------------------
-{
-  "functions": {
-    "api/**/*.js": {
-      "runtime": "nodejs18.x"
-    }
-  },
-  "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "src": "/(.*)", "dest": "/index.html" }
-  ]
-}
